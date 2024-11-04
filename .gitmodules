@@ -1,0 +1,3 @@
+[submodule "bashutils"]
+	path = bashutils
+	url = https://github.com/sunxiaoning/bashutils
