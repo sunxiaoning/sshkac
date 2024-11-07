@@ -16,7 +16,10 @@ ORIGINAL_KEYFINGER=${ORIGINAL_KEYFINGER:-""}
 gen-keypair() {
   check-keypair
 
+  check-default-user-mode
+
   mkdir -p "$(dirname ${KEY_FILE})"
+  chmod 700 "$(dirname ${KEY_FILE})"
 
   if [[ -f "${KEY_FILE}" ]]; then
     echo "KEY_FILE: ${KEY_FILE} is already exists!" >&2
@@ -41,6 +44,8 @@ remove-keypair() {
     return 0
   fi
 
+  check-default-user-mode
+
   rm -f "${KEY_FILE}" "${PUB_KEY_FILE}"
 
   echo "Removed key file: ${KEY_FILE}"
@@ -53,6 +58,8 @@ check-keyfinger() {
   fi
 
   check-pub-key-file
+
+  check-default-user-mode
 
   local keyfinger_type=""
 
