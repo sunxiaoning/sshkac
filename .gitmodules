@@ -1,3 +1,6 @@
 [submodule "bashutils"]
 	path = bashutils
 	url = https://github.com/sunxiaoning/bashutils
+[submodule "txcrypt"]
+	path = txcrypt
+	url = https://github.com/sunxiaoning/txcrypt
