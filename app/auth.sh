@@ -1,6 +1,8 @@
 KNOWN_HOSTS_FILE="$(__get-current-home-dir)/.ssh/known_hosts"
+ENCRYPTED_REMOTE_PASSWORD=${ENCRYPTED_REMOTE_PASSWORD:-"1"}
 
 REMOTE_PASSWORD=${REMOTE_PASSWORD:-""}
+
 TXCRYPT_SH_FILE="${CONTEXT_DIR}/txcrypt/txcrypt.sh"
 
 KEY_NAME=${KEY_NAME:-""}
@@ -91,13 +93,15 @@ auth-target-hosts() {
   check-default-user-mode
 
   if ! rpm -q "sshpass" &>/dev/null; then
-    yum -y install sshpass
+    sudo yum -y install sshpass
   fi
 
   local remote_password="${REMOTE_PASSWORD}"
   unset REMOTE_PASSWORD
 
-  remote_password=$(ENCRYPTED_TXT=${remote_password} "${TXCRYPT_SH_FILE}" decrypt-txt | grep '^The original txt content is:' | awk -F: '{print $2}' | tr -d ' ')
+  if [[ "1" == "${ENCRYPTED_REMOTE_PASSWORD}" ]]; then
+    remote_password=$(ENCRYPTED_TXT=${remote_password} "${TXCRYPT_SH_FILE}" decrypt-txt | grep '^The original txt content is:' | awk -F: '{print $2}' | tr -d ' ')
+  fi
 
   for target_host in "${TARGET_HOSTS_ARRAY[@]}"; do
     sshpass -v -p "${remote_password}" ssh-copy-id -i "${PUB_KEY_FILE}" -o StrictHostKeyChecking="${STRICT_HOST_KEY_CHECKING}" "${REMOTE_USER}@${target_host}"
@@ -134,13 +138,15 @@ revoke-target-hosts() {
   check-default-user-mode
 
   if ! rpm -q "sshpass" &>/dev/null; then
-    yum -y install sshpass
+    sudo yum -y install sshpass
   fi
 
   local remote_password="${REMOTE_PASSWORD}"
   unset REMOTE_PASSWORD
 
-  remote_password=$(ENCRYPTED_TXT=${remote_password} "${TXCRYPT_SH_FILE}" decrypt-txt | grep '^The original txt content is:' | awk -F: '{print $2}' | tr -d ' ')
+  if [[ "1" == "${ENCRYPTED_REMOTE_PASSWORD}" ]]; then
+    remote_password=$(ENCRYPTED_TXT=${remote_password} "${TXCRYPT_SH_FILE}" decrypt-txt | grep '^The original txt content is:' | awk -F: '{print $2}' | tr -d ' ')
+  fi
 
   local pub_key_escaped="$(cat ${PUB_KEY_FILE} | sed 's/[\/&]/\\&/g')"
 

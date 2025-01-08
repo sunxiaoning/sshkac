@@ -82,14 +82,14 @@ cleanup() {
 
   echo "Start cleanup action: ${ACTION} ..."
 
-  case "${ACTION}" in
-  autosetup)
-    clean-autosetup
-    ;;
-  *)
-    echo "The action: ${1-} cleanup is empty, skip the operation."
-    ;;
-  esac
+  # case "${ACTION}" in
+  # auth-target-hosts)
+  #   uninstall-sshpass
+  #   ;;
+  # *)
+  #   echo "The action: ${1-} cleanup is empty, skip the operation."
+  #   ;;
+  # esac
 }
 
 main "$@"
