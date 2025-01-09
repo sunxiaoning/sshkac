@@ -104,7 +104,16 @@ auth-target-hosts() {
   fi
 
   for target_host in "${TARGET_HOSTS_ARRAY[@]}"; do
-    sshpass -v -p "${remote_password}" ssh-copy-id -i "${PUB_KEY_FILE}" -o StrictHostKeyChecking="${STRICT_HOST_KEY_CHECKING}" "${REMOTE_USER}@${target_host}"
+
+    # Only save single pub_key, always override old with new.
+
+    local pub_key="$(cat ${PUB_KEY_FILE})"
+    sshpass -v -p "${remote_password}" ssh "${REMOTE_USER}@${target_host}" "bash -c \"
+        mkdir -p $(dirname ${AUTHORIZED_KEYS_FILE}) && \
+        chmod 700 $(dirname ${AUTHORIZED_KEYS_FILE}) && \
+        echo "${pub_key}" > ${AUTHORIZED_KEYS_FILE}\""
+
+    # sshpass -v -p "${remote_password}" ssh-copy-id -i "${PUB_KEY_FILE}" -o StrictHostKeyChecking="${STRICT_HOST_KEY_CHECKING}" "${REMOTE_USER}@${target_host}"
 
     "${EXECRSH_SH_FILE}" -e "-o BatchMode=yes" -p "${CONTEXT_DIR}/bashutils/basicenv.sh ${CONTEXT_DIR}/app/env.sh ${CONTEXT_DIR}/app/sec.sh ${CONTEXT_DIR}/rsh/app/ ${CONTEXT_DIR}/rsh/rsh.sh" -a "forbid-password-authentication" -s "${target_host}" rsh.sh &
 
