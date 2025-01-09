@@ -13,6 +13,13 @@ NEW_PASSPHRASE=${NEW_PASSPHRASE:-""}
 
 ORIGINAL_KEYFINGER=${ORIGINAL_KEYFINGER:-""}
 
+PAT=${PAT:-""}
+REPO_ORIGIN_SOURCE=${REPO_ORIGIN_SOURCE:-"0"}
+OPS_KEY_REPO_URL=${OPS_KEY_REPO_URL:-""}
+
+OPS_KEY_FILE=${OPS_KEY_FILE:-"id_rsa"}
+OPS_PUB_KEY_FILE=${OPS_PUB_KEY_FILE:-"id_rsa.pub"}
+
 gen-keypair() {
   check-keypair
 
@@ -36,6 +43,77 @@ gen-keypair() {
   echo "Generated key file: ${KEY_FILE}."
 
   echo "The key fingerprint is: $(ssh-keygen -lf ${KEY_FILE}.pub | awk '{print $2}')"
+}
+
+# Only do this operation on hosts in trust
+import-keypair() {
+  if [[ -z "${PAT}" ]]; then
+    echo "PAT param can't be empty!" >&2
+    exit 1
+  fi
+
+  if [[ -z "${OPS_KEY_REPO_URL}" ]]; then
+    echo "OPS_KEY_REPO_URL param can't be empty!" >&2
+    exit 1
+  fi
+
+  check-default-user-mode
+
+  echo "Use REPO_ORIGIN_SOURCE: ${REPO_ORIGIN_SOURCE}"
+
+  # TODO deal with half-success status. override ?? or cleanup by hand ??
+
+  if [[ -f "${KEY_FILE}" ]]; then
+    echo "KEY_FILE: ${KEY_FILE} is already exists!" >&2
+    return 0
+  fi
+
+  if [[ -f "${PUB_KEY_FILE}" ]]; then
+    echo "PUB_KEY_FILE: ${PUB_KEY_FILE} is already exists!" >&2
+    return 0
+  fi
+
+  if ! rpm -q "jq" &>/dev/null; then
+    sudo yum -y install jq
+  fi
+
+  local key_file_url="${OPS_KEY_REPO_URL}/${OPS_KEY_FILE}"
+
+  if [[ "${REPO_ORIGIN_SOURCE}" == "1" ]]; then
+    key_file_url="${key_file_url}?ref=main"
+  fi
+
+  if [[ "${REPO_ORIGIN_SOURCE}" == "1" ]]; then
+    curl -fsSL -H "Authorization: token ${PAT}" "${key_file_url}" | jq -r '.content' | base64 --decode >"${WORKDIR}/${OPS_KEY_FILE}" &
+  else
+    curl -fsSLo "${WORKDIR}/${OPS_KEY_FILE}" -H "Authorization: token ${PAT}" "${key_file_url}" &
+  fi
+
+  wait $!
+
+  cp "${WORKDIR}/${OPS_KEY_FILE}" "${KEY_FILE}"
+  chmod 700 "${KEY_FILE}"
+
+  echo "Imported key file: ${KEY_FILE}"
+
+  local pub_key_file_url="${OPS_KEY_REPO_URL}/${OPS_PUB_KEY_FILE}"
+
+  if [[ "${REPO_ORIGIN_SOURCE}" == "1" ]]; then
+    pub_key_file_url="${pub_key_file_url}?ref=main"
+  fi
+
+  if [[ "${REPO_ORIGIN_SOURCE}" == "1" ]]; then
+    curl -fsSL -H "Authorization: token ${PAT}" "${pub_key_file_url}" | jq -r '.content' | base64 --decode >"${WORKDIR}/${OPS_PUB_KEY_FILE}" &
+  else
+    curl -fsSLo "${WORKDIR}/${OPS_PUB_KEY_FILE}" -H "Authorization: token ${PAT}" "${pub_key_file_url}" &
+  fi
+
+  wait $!
+
+  cp "${WORKDIR}/${OPS_PUB_KEY_FILE}" "${PUB_KEY_FILE}"
+  chmod 700 "${PUB_KEY_FILE}"
+
+  echo "Imported key file: ${PUB_KEY_FILE}"
 }
 
 remove-keypair() {

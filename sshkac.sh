@@ -1,5 +1,11 @@
 #!/bin/bash
 
+WORKDIR=$(mktemp -d -t servimage_ops-XXXXXX)
+if [[ ! "${WORKDIR}" || ! -d "${WORKDIR}" ]]; then
+  echo "Error: Make workdir failed!" >&2
+  exit 1
+fi
+
 CONTEXT_DIR=$(dirname "$(realpath "${BASH_SOURCE}")")
 SCRIPT_NAME=$(basename "$0")
 
@@ -18,6 +24,9 @@ TEMP_FILES=()
 main() {
   ACTION="${1-}"
   case "${ACTION}" in
+  import-keypair)
+    import-keypair
+    ;;
   gen-keypair)
     gen-keypair
     ;;
@@ -78,6 +87,11 @@ cleanup() {
     for temp_file in "${TEMP_FILES[@]}"; do
       rm -f "${temp_file}" || true
     done
+  fi
+
+  if [[ -n "${WORKDIR-}" ]]; then
+    echo "[${SCRIPT_NAME}] Cleanup WORKDIR: ${WORKDIR} ..."
+    rm -rf "${WORKDIR}"
   fi
 
   echo "Start cleanup action: ${ACTION} ..."
